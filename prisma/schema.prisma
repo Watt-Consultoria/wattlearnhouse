@@ -11,7 +11,6 @@ enum UserRole {
   student
   teacher
 }
-
 model User {
   id        String   @id @default(uuid())
   googleId  String   @unique @map("google_id")
@@ -22,18 +21,22 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
   role      UserRole @default(student)
 
-  courses Course[]
+  courses        Course[]
+  lessonProgress LessonProgress[]
+  quizAttempts   QuizAttempt[]
 
   @@map("users")
 }
 
 model Course {
-  id          String   @id @default(uuid())
-  teacherId   String   @map("teacher_id")
-  title       String
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id            String      @id @default(uuid())
+  teacherId     String      @map("teacher_id")
+  title         String
+  description   String?
+  category      String
+  coverImageUrl String?     @map("cover_image_url")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   teacher User     @relation(fields: [teacherId], references: [id])
   modules Module[]
@@ -52,22 +55,84 @@ model Module {
 
   course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons Lesson[]
+  quiz    Quiz?
 
   @@index([courseId], map: "idx_modules_course_id")
   @@map("modules")
 }
 
 model Lesson {
-  id        String   @id @default(uuid())
-  moduleId  String   @map("module_id")
-  title     String
-  content   String
-  order     Int
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id              String   @id @default(uuid())
+  moduleId        String   @map("module_id")
+  title           String
+  content         String
+  order           Int
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  module   Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress LessonProgress[]
 
   @@index([moduleId], map: "idx_lessons_module_id")
   @@map("lessons")
+}
+
+model Quiz {
+  id        String   @id @default(uuid())
+  moduleId  String   @unique @map("module_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  module    Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id           String @id @default(uuid())
+  quizId       String @map("quiz_id")
+  question     String
+  options      String[]
+  correctIndex Int    @map("correct_index")
+  explanation  String
+  order        Int
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId], map: "idx_quiz_questions_quiz_id")
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id             String   @id @default(uuid())
+  quizId         String   @map("quiz_id")
+  userId         String   @map("user_id")
+  score          Int
+  totalQuestions Int      @map("total_questions")
+  passed         Boolean
+  answers        Json
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([quizId], map: "idx_quiz_attempts_quiz_id")
+  @@index([userId], map: "idx_quiz_attempts_user_id")
+  @@map("quiz_attempts")
+}
+
+model LessonProgress {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  lessonId    String   @map("lesson_id")
+  completedAt DateTime @default(now()) @map("completed_at") @db.Timestamptz(3)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId], map: "idx_lesson_progress_user_lesson")
+  @@index([lessonId], map: "idx_lesson_progress_lesson_id")
+  @@map("lesson_progress")
 }

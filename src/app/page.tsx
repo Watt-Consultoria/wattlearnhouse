@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { HomeView } from "@/view/home";
 import authService from "@/modules/auth/auth.service";
 
 export default async function HomePage() {
@@ -9,5 +8,5 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  return <HomeView />;
+  redirect("/courses");
 }

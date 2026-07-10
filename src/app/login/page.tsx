@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Logomark } from "@/components/logomark";
 import googleClient from "@/modules/auth/google.client";
 
 function GoogleIcon() {
@@ -35,15 +36,22 @@ export default function LoginPage() {
   const authUrl = googleClient.getAuthUrl();
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-brand-navy p-6">
       <div className="w-full max-w-md">
-        <Card className="shadow-lg border-muted">
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <Logomark variant="translucent" className="size-11 rounded-xl text-xl" />
+          <span className="font-heading text-xl font-bold tracking-tight text-white">
+            WattLearn<span className="text-brand-gold">House</span>
+          </span>
+        </div>
+
+        <Card className="border-0 shadow-2xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold tracking-tight">
-              Bem-vindo
+            <CardTitle className="font-heading text-2xl font-bold tracking-tight">
+              Bem-vindo de volta
             </CardTitle>
             <CardDescription>
-              Faça login com sua conta Google para continuar.
+              Faça login com sua conta Google para continuar seu aprendizado.
             </CardDescription>
           </CardHeader>
 

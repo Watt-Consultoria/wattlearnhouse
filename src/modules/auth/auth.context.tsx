@@ -3,7 +3,7 @@
 import { createContext, useContext } from "react";
 import type { User } from "@/generated/prisma/client";
 
-export type AuthUser = Pick<User, "id" | "name" | "email" | "avatarUrl">;
+export type AuthUser = Pick<User, "id" | "name" | "email" | "avatarUrl" | "role">;
 
 const AuthContext = createContext<AuthUser | null>(null);
 
