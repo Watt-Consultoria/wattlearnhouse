@@ -7,14 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "services:up": "docker-compose -f src/infra/compose.yaml up -d",
+    "services:up": "docker-compose -f src/infra/compose.yaml up -d && npm run prisma:migrate",
     "services:down": "docker-compose -f src/infra/compose.yaml down",
     "services:stop": "docker-compose -f src/infra/compose.yaml stop",
-    "db:connect": "psql postgresql://postgres:postgres@127.0.0.1:5432/wattlearn"
+    "db:wait": "wait-on tcp:localhost:5432",
+    "prisma:migrate": "npm run db:wait && npx prisma migrate dev"
   },
   "dependencies": {
     "@base-ui/react": "1.6.0",
-    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "7.8.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
@@ -30,7 +31,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "4",
     "@types/node": "20",
-    "@types/pg": "^8.20.0",
+    "@types/pg": "8.20.0",
     "@types/react": "19",
     "@types/react-dom": "19",
     "dotenv": "17.4.2",
@@ -38,6 +39,7 @@
     "eslint-config-next": "16.2.10",
     "prisma": "7.8.0",
     "tailwindcss": "4",
-    "typescript": "5"
+    "typescript": "5",
+    "wait-on": "9.0.10"
   }
 }
