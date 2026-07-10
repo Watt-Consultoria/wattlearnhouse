@@ -14,12 +14,60 @@ enum UserRole {
 
 model User {
   id        String   @id @default(uuid())
-  googleId  String   @unique
+  googleId  String   @unique @map("google_id")
   name      String
   email     String   @unique
-  avatarUrl String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
   role      UserRole @default(student)
+
+  courses Course[]
+
   @@map("users")
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  teacherId   String   @map("teacher_id")
+  title       String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  teacher User     @relation(fields: [teacherId], references: [id])
+  modules Module[]
+
+  @@index([teacherId], map: "idx_courses_teacher_id")
+  @@map("courses")
+}
+
+model Module {
+  id        String   @id @default(uuid())
+  courseId  String   @map("course_id")
+  title     String
+  order     Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@index([courseId], map: "idx_modules_course_id")
+  @@map("modules")
+}
+
+model Lesson {
+  id        String   @id @default(uuid())
+  moduleId  String   @map("module_id")
+  title     String
+  content   String
+  order     Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@index([moduleId], map: "idx_lessons_module_id")
+  @@map("lessons")
 }
