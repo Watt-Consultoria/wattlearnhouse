@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import authService from "@/modules/auth/auth.service";
 import googleClient from "@/modules/auth/google.client";
 
 function GoogleIcon() {
@@ -33,13 +31,7 @@ function GoogleIcon() {
   );
 }
 
-export default async function LoginPage() {
-  const user = await authService.getCurrentUser();
-
-  if (user) {
-    redirect("/");
-  }
-
+export default function LoginPage() {
   const authUrl = googleClient.getAuthUrl();
 
   return (
