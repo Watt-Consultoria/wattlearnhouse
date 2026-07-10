@@ -16,7 +16,7 @@ O sistema SHALL representar cursos como uma hierarquia estrita de três níveis:
 - **THEN** todas as `Lesson` vinculadas a ele são deletadas em cascata
 
 ### Requirement: Aula suporta conteúdo textual, em vídeo ou misto via Markdown
-Uma `Lesson` SHALL ter um único campo `content` (Markdown, obrigatório) como fonte de todo o seu material. Vídeos do YouTube SHALL ser referenciados dentro do `content` usando a notação `[youtube_video](<url>)`, que o renderizador de aulas interpreta e transforma em embed. O sistema SHALL NOT ter um campo `videoUrl` separado nem um campo de "tipo de aula" — o tipo (texto / vídeo / misto) é determinado pelo conteúdo do Markdown, não por um campo dedicado.
+Uma `Lesson` SHALL ter um único campo `content` (Markdown, obrigatório) como fonte de todo o seu material. Vídeos do YouTube SHALL ser referenciados dentro do `content` usando a notação `[youtube_video](<url>)`, que o renderizador de aulas interpreta e transforma em embed. Equações matemáticas SHALL ser referenciadas usando notação LaTeX delimitada por `$...$` (inline) ou `$$...$$` (bloco), que o renderizador de aulas interpreta e transforma em fórmula renderizada via KaTeX. O sistema SHALL NOT ter um campo `videoUrl` separado, um campo `equations` separado, nem um campo de "tipo de aula" — o tipo de conteúdo é determinado pelo Markdown em `content`, não por um campo dedicado.
 
 #### Scenario: Aula somente com vídeo
 - **WHEN** uma `Lesson` é criada com `content` contendo apenas a notação `[youtube_video](<url>)`
@@ -33,6 +33,10 @@ Uma `Lesson` SHALL ter um único campo `content` (Markdown, obrigatório) como f
 #### Scenario: Aula sem conteúdo é rejeitada
 - **WHEN** uma `Lesson` é criada sem `content`
 - **THEN** a operação falha por violação de constraint obrigatória
+
+#### Scenario: Aula com equação matemática
+- **WHEN** uma `Lesson` é criada com `content` contendo uma expressão delimitada por `$...$` ou `$$...$$`
+- **THEN** o registro é salvo com sucesso, e a tela de aula renderiza a expressão como fórmula matemática em vez de texto literal
 
 ### Requirement: Ordenação explícita de Modules e Lessons
 Todo `Module` SHALL ter um campo `order` (inteiro) que determina sua posição de exibição dentro do `Course`. Toda `Lesson` SHALL ter um campo `order` (inteiro) que determina sua posição de exibição dentro do `Module`.
@@ -69,3 +73,25 @@ O sistema SHALL fornecer um script de seed executável que popula o banco com ao
 #### Scenario: Seed popula a cadeia completa
 - **WHEN** o script de seed é executado em um banco vazio
 - **THEN** o banco passa a conter exatamente 1 `Course`, vinculado a 1 `Module`, vinculado a 1 `Lesson`, e todos vinculados a um `User` com `role: teacher`
+
+### Requirement: Course possui metadados de catálogo
+Todo `Course` SHALL ter `category` (texto livre), `level` (`beginner` | `intermediate` | `advanced`) e `tags` (lista de textos). `Course` SHALL ter um `coverImageUrl` opcional; quando ausente ou inválido, a UI que o consome SHALL exibir um fallback visual em vez de um espaço vazio ou ícone quebrado.
+
+#### Scenario: Criar curso sem categoria, nível ou tags é rejeitado
+- **WHEN** um `Course` é criado sem `category`, sem `level` ou sem `tags`
+- **THEN** a operação falha por violação de constraint obrigatória
+
+#### Scenario: Criar curso sem capa é aceito
+- **WHEN** um `Course` é criado sem `coverImageUrl`
+- **THEN** o registro é salvo com sucesso, com `coverImageUrl` nulo
+
+### Requirement: Lesson possui duração em minutos
+Toda `Lesson` SHALL ter um campo `durationMinutes` (inteiro, obrigatório) representando sua duração estimada em minutos.
+
+#### Scenario: Criar aula sem duração é rejeitado
+- **WHEN** uma `Lesson` é criada sem `durationMinutes`
+- **THEN** a operação falha por violação de constraint obrigatória
+
+#### Scenario: Duração de módulo e curso são somas das durações de suas aulas
+- **WHEN** a duração total de um `Module` ou `Course` é exibida
+- **THEN** o valor corresponde à soma de `durationMinutes` de todas as `Lesson` correspondentes
