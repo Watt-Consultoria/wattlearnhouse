@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import googleClient from "@/modules/auth/google.client";
 import authService from "@/modules/auth/auth.service";
+import sessionService from "@/modules/auth/session.service";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -17,10 +18,14 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.redirect(new URL("/", request.url));
 
-    response.cookies.set("session_id", user.id, {
+    const token = await sessionService.encrypt({ userId: user.id });
+
+    response.cookies.set(sessionService.cookieName, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       path: "/",
+      maxAge: sessionService.cookieMaxAge,
     });
 
     return response;

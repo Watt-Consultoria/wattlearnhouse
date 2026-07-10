@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import sessionService from "@/modules/auth/session.service";
 
 const publicRoutes = ["/login"];
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isAuthenticated = request.cookies.has("session_id");
+  const token = request.cookies.get(sessionService.cookieName)?.value;
+  const session = await sessionService.decrypt(token);
+  const isAuthenticated = !!session?.userId;
   const isPublicRoute = publicRoutes.includes(pathname);
 
   if (!isAuthenticated && !isPublicRoute) {

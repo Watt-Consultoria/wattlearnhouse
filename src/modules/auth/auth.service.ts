@@ -1,17 +1,20 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import prisma from "@/infra/database";
+import sessionService from "./session.service";
 
 class AuthService {
-  async getCurrentUser() {
+  getCurrentUser = cache(async () => {
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get("session_id")?.value;
+    const token = cookieStore.get(sessionService.cookieName)?.value;
+    const session = await sessionService.decrypt(token);
 
-    if (!sessionId) {
+    if (!session) {
       return null;
     }
 
-    return prisma.user.findUnique({ where: { id: sessionId } });
-  }
+    return prisma.user.findUnique({ where: { id: session.userId } });
+  });
 
   async validateGoogleUser(googleUserInfo: {
     id: string;
