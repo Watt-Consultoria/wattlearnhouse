@@ -65,9 +65,13 @@ export type QuizQuestionOwnership = {
 };
 
 class AuthoringService {
-  async listCoursesByTeacher(teacherId: string): Promise<TeacherCourseSummary[]> {
+  /** Admin vê todos os cursos da plataforma; teacher só os que possui. */
+  async listCoursesByTeacher(
+    teacherId: string,
+    role: "teacher" | "admin" = "teacher",
+  ): Promise<TeacherCourseSummary[]> {
     const courses = await prisma.course.findMany({
-      where: { teacherId },
+      where: role === "admin" ? {} : { teacherId },
       orderBy: { createdAt: "desc" },
       include: { modules: { select: { id: true } } },
     });
@@ -85,6 +89,7 @@ class AuthoringService {
   async getCourseForTeacher(
     courseId: string,
     teacherId: string,
+    role: "teacher" | "admin" = "teacher",
   ): Promise<TeacherCourseDetail | null> {
     const course = await prisma.course.findUnique({
       where: { id: courseId },
@@ -95,7 +100,7 @@ class AuthoringService {
         },
       },
     });
-    if (!course || course.teacherId !== teacherId) {
+    if (!course || (role !== "admin" && course.teacherId !== teacherId)) {
       return null;
     }
 
@@ -117,6 +122,7 @@ class AuthoringService {
   async getModuleForTeacher(
     moduleId: string,
     teacherId: string,
+    role: "teacher" | "admin" = "teacher",
   ): Promise<TeacherModuleDetail | null> {
     const courseModule = await prisma.module.findUnique({
       where: { id: moduleId },
@@ -126,7 +132,7 @@ class AuthoringService {
         quiz: { include: { questions: { orderBy: { order: "asc" } } } },
       },
     });
-    if (!courseModule || courseModule.course.teacherId !== teacherId) {
+    if (!courseModule || (role !== "admin" && courseModule.course.teacherId !== teacherId)) {
       return null;
     }
 
@@ -159,6 +165,7 @@ class AuthoringService {
   async getLessonForTeacher(
     lessonId: string,
     teacherId: string,
+    role: "teacher" | "admin" = "teacher",
   ): Promise<TeacherLessonDetail | null> {
     const lesson = await prisma.lesson.findUnique({
       where: { id: lessonId },
@@ -168,7 +175,7 @@ class AuthoringService {
         },
       },
     });
-    if (!lesson || lesson.module.course.teacherId !== teacherId) {
+    if (!lesson || (role !== "admin" && lesson.module.course.teacherId !== teacherId)) {
       return null;
     }
 

@@ -6,6 +6,28 @@ import authService from "@/modules/auth/auth.service";
 import quizService from "@/modules/quiz/quiz.service";
 import coursesService from "./courses.service";
 
+export type EnrollResult = { ok: true } | { ok: false; error: string };
+
+export async function enrollInCourse(courseId: string): Promise<EnrollResult> {
+  const user = await authService.getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "Sessão inválida." };
+  }
+
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { id: true },
+  });
+  if (!course) {
+    return { ok: false, error: "Curso não encontrado." };
+  }
+
+  await coursesService.enroll(courseId, user.id);
+
+  revalidatePath(`/courses/${courseId}`);
+  return { ok: true };
+}
+
 export type CompleteLessonResult = { ok: true } | { ok: false; error: string };
 
 export async function completeLesson(lessonId: string): Promise<CompleteLessonResult> {

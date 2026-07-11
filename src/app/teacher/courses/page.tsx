@@ -12,11 +12,12 @@ export default async function TeacherCoursesPage() {
   if (!user) {
     redirect("/login");
   }
-  if (user.role !== "teacher") {
+  if (user.role !== "teacher" && user.role !== "admin") {
     redirect("/courses");
   }
 
-  const courses = await authoringService.listCoursesByTeacher(user.id);
+  const isAdmin = user.role === "admin";
+  const courses = await authoringService.listCoursesByTeacher(user.id, user.role);
 
   return (
     <>
@@ -24,20 +25,24 @@ export default async function TeacherCoursesPage() {
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
         <div className="mb-8">
           <p className="mb-3 font-mono text-xs font-semibold tracking-widest text-brand-gold uppercase">
-            Área do professor
+            {isAdmin ? "Área administrativa" : "Área do professor"}
           </p>
           <h1 className="mb-3 font-heading text-3xl leading-tight font-extrabold text-foreground sm:text-4xl">
-            Meus cursos
+            {isAdmin ? "Todos os cursos" : "Meus cursos"}
           </h1>
           <p className="max-w-xl text-base text-muted-foreground">
-            Crie e gerencie seus próprios cursos, módulos e aulas.
+            {isAdmin
+              ? "Edite qualquer curso da plataforma e acompanhe as estatísticas de qualquer professor."
+              : "Crie e gerencie seus próprios cursos, módulos e aulas."}
           </p>
         </div>
 
         <CourseCreateForm />
 
         {courses.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Você ainda não criou nenhum curso.</p>
+          <p className="text-sm text-muted-foreground">
+            {isAdmin ? "Nenhum curso foi criado na plataforma ainda." : "Você ainda não criou nenhum curso."}
+          </p>
         ) : (
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {courses.map((course) => (

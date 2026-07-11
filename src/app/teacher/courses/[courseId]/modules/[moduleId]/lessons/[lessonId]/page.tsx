@@ -14,12 +14,12 @@ export default async function EditLessonPage({
   if (!user) {
     redirect("/login");
   }
-  if (user.role !== "teacher") {
+  if (user.role !== "teacher" && user.role !== "admin") {
     redirect("/courses");
   }
 
   const { courseId, moduleId, lessonId } = await params;
-  const lesson = await authoringService.getLessonForTeacher(lessonId, user.id);
+  const lesson = await authoringService.getLessonForTeacher(lessonId, user.id, user.role);
   if (!lesson || lesson.module.id !== moduleId || lesson.module.courseId !== courseId) {
     redirect("/teacher/courses");
   }

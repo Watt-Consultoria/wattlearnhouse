@@ -6,6 +6,7 @@ import coursesService from "@/modules/courses/courses.service";
 import { Navbar } from "@/modules/courses/components/navbar";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { ProgressBar } from "@/components/progress-bar";
+import { EnrollButton } from "@/modules/courses/components/enroll-button";
 import { cn } from "@/lib/utils";
 
 export default async function CourseDetailPage({
@@ -54,12 +55,18 @@ export default async function CourseDetailPage({
               </p>
             )}
 
-            <div className="mt-4 flex flex-wrap gap-4 text-sm text-white/70">
+            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-white/70">
               <span className="flex items-center gap-1.5">
                 <BookOpen className="size-3.5" />
                 {course.modules.length} módulos · {course.totalLessons} lições
               </span>
             </div>
+
+            {!course.isEnrolled && (
+              <div className="mt-5">
+                <EnrollButton courseId={course.id} />
+              </div>
+            )}
 
             {course.progressPercent > 0 && (
               <div className="mt-5 rounded-xl bg-white/10 p-4">
@@ -107,6 +114,7 @@ type ModuleListItemProps = {
     id: string;
     title: string;
     lessonCount: number;
+    lessons: { id: string; title: string; order: number }[];
     hasQuiz: boolean;
     progressPercent: number;
     locked: boolean;
@@ -160,6 +168,15 @@ function ModuleListItem({ courseId, index, module }: ModuleListItemProps) {
           </span>
         </div>
         {!module.locked && <ProgressBar value={module.progressPercent} size="sm" />}
+        {module.locked && module.lessons.length > 0 && (
+          <ul className="mt-1 flex flex-col gap-0.5">
+            {module.lessons.map((lesson) => (
+              <li key={lesson.id} className="truncate text-xs text-muted-foreground">
+                {lesson.title}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {!module.locked && (

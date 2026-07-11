@@ -10,6 +10,7 @@ datasource db {
 enum UserRole {
   student
   teacher
+  admin
 }
 model User {
   id        String   @id @default(uuid())
@@ -24,6 +25,7 @@ model User {
   courses        Course[]
   lessonProgress LessonProgress[]
   quizAttempts   QuizAttempt[]
+  enrollments    Enrollment[]
 
   @@map("users")
 }
@@ -38,11 +40,26 @@ model Course {
   createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  teacher User     @relation(fields: [teacherId], references: [id])
-  modules Module[]
+  teacher     User         @relation(fields: [teacherId], references: [id])
+  modules     Module[]
+  enrollments Enrollment[]
 
   @@index([teacherId], map: "idx_courses_teacher_id")
   @@map("courses")
+}
+
+model Enrollment {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  courseId    String   @map("course_id")
+  enrolledAt  DateTime @default(now()) @map("enrolled_at") @db.Timestamptz(3)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId], map: "idx_enrollments_user_course")
+  @@index([courseId], map: "idx_enrollments_course_id")
+  @@map("enrollments")
 }
 
 model Module {

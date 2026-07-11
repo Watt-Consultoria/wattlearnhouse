@@ -44,7 +44,7 @@ export function Navbar() {
             Cursos
           </Link>
 
-          {user?.role === "teacher" && (
+          {(user?.role === "teacher" || user?.role === "admin") && (
             <Link
               href="/teacher/courses"
               className={cn(
@@ -54,7 +54,7 @@ export function Navbar() {
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
-              Meus Cursos
+              {user?.role === "admin" ? "Todos os Cursos" : "Meus Cursos"}
             </Link>
           )}
 

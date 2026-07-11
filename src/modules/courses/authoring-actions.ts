@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import prisma from "@/infra/database";
 import authService from "@/modules/auth/auth.service";
+import type { User } from "@/generated/prisma/client";
 import authoringService from "./authoring.service";
 import { isCourseCategory } from "./categories";
 
@@ -26,44 +27,48 @@ type ReorderDirection = "up" | "down";
 
 async function requireTeacher() {
   const user = await authService.getCurrentUser();
-  if (!user || user.role !== "teacher") {
+  if (!user || (user.role !== "teacher" && user.role !== "admin")) {
     return null;
   }
   return user;
 }
 
-async function requireCourseOwnership(courseId: string, teacherId: string): Promise<boolean> {
+/** Admin edita qualquer curso; teacher só o que possui (ver platform-admin). */
+async function requireCourseOwnership(courseId: string, user: User): Promise<boolean> {
+  if (user.role === "admin") {
+    return true;
+  }
   const ownerId = await authoringService.getCourseTeacherId(courseId);
-  return ownerId === teacherId;
+  return ownerId === user.id;
 }
 
-async function requireModuleOwnership(moduleId: string, teacherId: string) {
+async function requireModuleOwnership(moduleId: string, user: User) {
   const ownership = await authoringService.resolveModuleOwnership(moduleId);
-  if (!ownership || ownership.teacherId !== teacherId) {
+  if (!ownership || (user.role !== "admin" && ownership.teacherId !== user.id)) {
     return null;
   }
   return ownership;
 }
 
-async function requireLessonOwnership(lessonId: string, teacherId: string) {
+async function requireLessonOwnership(lessonId: string, user: User) {
   const ownership = await authoringService.resolveLessonOwnership(lessonId);
-  if (!ownership || ownership.teacherId !== teacherId) {
+  if (!ownership || (user.role !== "admin" && ownership.teacherId !== user.id)) {
     return null;
   }
   return ownership;
 }
 
-async function requireQuizOwnership(quizId: string, teacherId: string) {
+async function requireQuizOwnership(quizId: string, user: User) {
   const ownership = await authoringService.resolveQuizOwnership(quizId);
-  if (!ownership || ownership.teacherId !== teacherId) {
+  if (!ownership || (user.role !== "admin" && ownership.teacherId !== user.id)) {
     return null;
   }
   return ownership;
 }
 
-async function requireQuizQuestionOwnership(questionId: string, teacherId: string) {
+async function requireQuizQuestionOwnership(questionId: string, user: User) {
   const ownership = await authoringService.resolveQuizQuestionOwnership(questionId);
-  if (!ownership || ownership.teacherId !== teacherId) {
+  if (!ownership || (user.role !== "admin" && ownership.teacherId !== user.id)) {
     return null;
   }
   return ownership;
@@ -110,7 +115,7 @@ export async function updateCourse(
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  if (!(await requireCourseOwnership(courseId, user.id))) {
+  if (!(await requireCourseOwnership(courseId, user))) {
     return { ok: false, error: "Você não tem permissão para editar este curso." };
   }
   if (!input.title.trim() || !input.category.trim()) {
@@ -141,7 +146,7 @@ export async function deleteCourse(courseId: string): Promise<AuthoringActionRes
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  if (!(await requireCourseOwnership(courseId, user.id))) {
+  if (!(await requireCourseOwnership(courseId, user))) {
     return { ok: false, error: "Você não tem permissão para excluir este curso." };
   }
 
@@ -160,7 +165,7 @@ export async function createModule(
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  if (!(await requireCourseOwnership(courseId, user.id))) {
+  if (!(await requireCourseOwnership(courseId, user))) {
     return { ok: false, error: "Você não tem permissão para editar este curso." };
   }
   if (!title.trim()) {
@@ -188,7 +193,7 @@ export async function updateModule(
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireModuleOwnership(moduleId, user.id);
+  const ownership = await requireModuleOwnership(moduleId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para editar este módulo." };
   }
@@ -207,7 +212,7 @@ export async function deleteModule(moduleId: string): Promise<AuthoringActionRes
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireModuleOwnership(moduleId, user.id);
+  const ownership = await requireModuleOwnership(moduleId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para excluir este módulo." };
   }
@@ -227,7 +232,7 @@ export async function reorderModule(
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireModuleOwnership(moduleId, user.id);
+  const ownership = await requireModuleOwnership(moduleId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para reordenar este módulo." };
   }
@@ -261,7 +266,7 @@ export async function createLesson(
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireModuleOwnership(moduleId, user.id);
+  const ownership = await requireModuleOwnership(moduleId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para editar este módulo." };
   }
@@ -296,7 +301,7 @@ export async function updateLesson(
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireLessonOwnership(lessonId, user.id);
+  const ownership = await requireLessonOwnership(lessonId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para editar esta aula." };
   }
@@ -322,7 +327,7 @@ export async function deleteLesson(lessonId: string): Promise<AuthoringActionRes
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireLessonOwnership(lessonId, user.id);
+  const ownership = await requireLessonOwnership(lessonId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para excluir esta aula." };
   }
@@ -342,7 +347,7 @@ export async function reorderLesson(
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireLessonOwnership(lessonId, user.id);
+  const ownership = await requireLessonOwnership(lessonId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para reordenar esta aula." };
   }
@@ -393,7 +398,7 @@ export async function createQuiz(moduleId: string): Promise<CreateQuizResult> {
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireModuleOwnership(moduleId, user.id);
+  const ownership = await requireModuleOwnership(moduleId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para editar este módulo." };
   }
@@ -414,7 +419,7 @@ export async function deleteQuiz(quizId: string): Promise<AuthoringActionResult>
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireQuizOwnership(quizId, user.id);
+  const ownership = await requireQuizOwnership(quizId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para excluir este quiz." };
   }
@@ -434,7 +439,7 @@ export async function createQuizQuestion(
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireQuizOwnership(quizId, user.id);
+  const ownership = await requireQuizOwnership(quizId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para editar este quiz." };
   }
@@ -471,7 +476,7 @@ export async function updateQuizQuestion(
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireQuizQuestionOwnership(questionId, user.id);
+  const ownership = await requireQuizQuestionOwnership(questionId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para editar esta pergunta." };
   }
@@ -499,7 +504,7 @@ export async function deleteQuizQuestion(questionId: string): Promise<AuthoringA
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireQuizQuestionOwnership(questionId, user.id);
+  const ownership = await requireQuizQuestionOwnership(questionId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para excluir esta pergunta." };
   }
@@ -518,7 +523,7 @@ export async function reorderQuizQuestion(
   if (!user) {
     return { ok: false, error: ACCESS_DENIED_ERROR };
   }
-  const ownership = await requireQuizQuestionOwnership(questionId, user.id);
+  const ownership = await requireQuizQuestionOwnership(questionId, user);
   if (!ownership) {
     return { ok: false, error: "Você não tem permissão para reordenar esta pergunta." };
   }

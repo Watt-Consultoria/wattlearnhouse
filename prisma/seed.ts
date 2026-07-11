@@ -8,7 +8,10 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 const TEACHER_GOOGLE_ID = "seed-teacher-google-id";
+const TEACHER2_GOOGLE_ID = "seed-teacher2-google-id";
 const STUDENT_GOOGLE_ID = "seed-student-google-id";
+const STUDENT2_GOOGLE_ID = "seed-student2-google-id";
+const ADMIN_GOOGLE_ID = "seed-admin-google-id";
 
 const YOUTUBE_SAMPLE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 const COVER_A = "https://picsum.photos/id/1010/800/450";
@@ -589,6 +592,14 @@ async function seedCourse(teacherId: string, course: CourseSeed) {
   }
 }
 
+async function enroll(userId: string, courseId: string) {
+  await prisma.enrollment.upsert({
+    where: { userId_courseId: { userId, courseId } },
+    update: {},
+    create: { userId, courseId },
+  });
+}
+
 async function completeLesson(userId: string, lessonId: string) {
   await prisma.lessonProgress.upsert({
     where: { userId_lessonId: { userId, lessonId } },
@@ -638,6 +649,30 @@ async function main() {
     create: teacherData,
   });
 
+  const teacher2Data = {
+    googleId: TEACHER2_GOOGLE_ID,
+    name: "Outro Professor",
+    email: "outro.professor@wattlearn.dev",
+    role: "teacher" as const,
+  };
+  await prisma.user.upsert({
+    where: { googleId: TEACHER2_GOOGLE_ID },
+    update: teacher2Data,
+    create: teacher2Data,
+  });
+
+  const adminData = {
+    googleId: ADMIN_GOOGLE_ID,
+    name: "Admin de Teste",
+    email: "admin.teste@wattlearn.dev",
+    role: "admin" as const,
+  };
+  await prisma.user.upsert({
+    where: { googleId: ADMIN_GOOGLE_ID },
+    update: adminData,
+    create: adminData,
+  });
+
   const studentData = {
     googleId: STUDENT_GOOGLE_ID,
     name: "Aluno de Teste",
@@ -650,8 +685,27 @@ async function main() {
     create: studentData,
   });
 
+  const student2Data = {
+    googleId: STUDENT2_GOOGLE_ID,
+    name: "Aluno Sem Matrícula",
+    email: "aluno.sem.matricula@wattlearn.dev",
+    role: "student" as const,
+  };
+  await prisma.user.upsert({
+    where: { googleId: STUDENT2_GOOGLE_ID },
+    update: student2Data,
+    create: student2Data,
+  });
+
   for (const course of COURSES) {
     await seedCourse(teacher.id, course);
+  }
+
+  // O aluno de teste está matriculado em todos os cursos seed — o "aluno sem
+  // matrícula" fica de fora de propósito, para exercitar a prévia de currículo
+  // pré-matrícula (ver course-enrollment).
+  for (const course of COURSES) {
+    await enroll(student.id, course.id);
   }
 
   // Curso A - módulo 1: todas as aulas concluídas (100%, sem quiz) -> desbloqueia módulo 2

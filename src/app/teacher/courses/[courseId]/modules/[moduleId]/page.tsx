@@ -16,12 +16,12 @@ export default async function TeacherModuleDetailPage({
   if (!user) {
     redirect("/login");
   }
-  if (user.role !== "teacher") {
+  if (user.role !== "teacher" && user.role !== "admin") {
     redirect("/courses");
   }
 
   const { courseId, moduleId } = await params;
-  const courseModule = await authoringService.getModuleForTeacher(moduleId, user.id);
+  const courseModule = await authoringService.getModuleForTeacher(moduleId, user.id, user.role);
   if (!courseModule || courseModule.course.id !== courseId) {
     redirect("/teacher/courses");
   }

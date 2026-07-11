@@ -11,6 +11,12 @@ export type CourseSummary = {
   progressPercent: number;
 };
 
+export type CourseDetailLesson = {
+  id: string;
+  title: string;
+  order: number;
+};
+
 class CoursesService {
   async listCourses(userId: string): Promise<CourseSummary[]> {
     const courses = await prisma.course.findMany({
@@ -49,7 +55,7 @@ class CoursesService {
       return null;
     }
 
-    const { modules, moduleProgress, completedLessonIds } =
+    const { modules, moduleProgress, completedLessonIds, isEnrolled } =
       await this.computeCourseModuleProgress(courseId, userId);
 
     const totalLessons = modules.reduce((sum, m) => sum + m.lessons.length, 0);
@@ -64,6 +70,7 @@ class CoursesService {
       description: course.description,
       category: course.category,
       coverImageUrl: course.coverImageUrl,
+      isEnrolled,
       totalLessons,
       completedLessons,
       progressPercent: computeCourseProgress(
@@ -77,12 +84,33 @@ class CoursesService {
           title: courseModule.title,
           order: courseModule.order,
           lessonCount: courseModule.lessons.length,
+          lessons: courseModule.lessons
+            .map((lesson) => ({ id: lesson.id, title: lesson.title, order: lesson.order }))
+            .sort((a, b) => a.order - b.order),
           hasQuiz: !!courseModule.quiz,
           progressPercent: progress.progressPercent,
+          // Um módulo só é navegável quando o aluno está matriculado E a sequência
+          // de desbloqueio já liberou esse módulo (ver computeCourseModuleProgress).
           locked: !progress.unlocked,
         };
       }),
     };
+  }
+
+  async isEnrolled(courseId: string, userId: string): Promise<boolean> {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+      select: { id: true },
+    });
+    return enrollment !== null;
+  }
+
+  async enroll(courseId: string, userId: string): Promise<void> {
+    await prisma.enrollment.upsert({
+      where: { userId_courseId: { userId, courseId } },
+      update: {},
+      create: { userId, courseId },
+    });
   }
 
   async getModuleDetail(moduleId: string, userId: string) {
@@ -213,7 +241,7 @@ class CoursesService {
       include: {
         lessons: {
           orderBy: { order: "asc" },
-          select: { id: true },
+          select: { id: true, title: true, order: true },
         },
         quiz: { select: { id: true } },
       },
@@ -224,7 +252,7 @@ class CoursesService {
       .map((m) => m.quiz?.id)
       .filter((id): id is string => !!id);
 
-    const [completedLessons, passedAttempts] = await Promise.all([
+    const [completedLessons, passedAttempts, enrollment] = await Promise.all([
       prisma.lessonProgress.findMany({
         where: { userId, lessonId: { in: lessonIds } },
         select: { lessonId: true },
@@ -233,11 +261,22 @@ class CoursesService {
         where: { userId, quizId: { in: quizIds }, passed: true },
         select: { quizId: true },
       }),
+      prisma.enrollment.findUnique({
+        where: { userId_courseId: { userId, courseId } },
+        select: { id: true },
+      }),
     ]);
 
     const completedLessonIds = new Set(completedLessons.map((l) => l.lessonId));
     const passedQuizIds = new Set(passedAttempts.map((a) => a.quizId));
+    const isEnrolled = enrollment !== null;
 
+    // A grade (títulos de módulo/aula) é visível a qualquer usuário autenticado
+    // (ver course-enrollment), mas navegar para dentro de um módulo exige matrícula
+    // além do desbloqueio sequencial — por isso `unlocked` já sai combinado aqui,
+    // de forma que toda tela e Server Action que consome esse resultado (módulo,
+    // aula, quiz, completeLesson, submitQuizAttempt) herda a checagem de matrícula
+    // automaticamente, sem duplicar a regra em cada lugar.
     const moduleProgress = computeModulesProgress(
       modules.map((m) => ({
         id: m.id,
@@ -246,9 +285,9 @@ class CoursesService {
       })),
       completedLessonIds,
       passedQuizIds,
-    );
+    ).map((progress) => ({ ...progress, unlocked: progress.unlocked && isEnrolled }));
 
-    return { modules, moduleProgress, completedLessonIds, passedQuizIds };
+    return { modules, moduleProgress, completedLessonIds, passedQuizIds, isEnrolled };
   }
 }
 
