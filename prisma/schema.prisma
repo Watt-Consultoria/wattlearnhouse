@@ -5,17 +5,22 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["wattlearnhouse"]
 }
 
 enum UserRole {
   student
   teacher
   admin
+
+  @@schema("wattlearnhouse")
 }
 
 enum CertificateKind {
   student_completion
   teacher_authorship
+
+  @@schema("wattlearnhouse")
 }
 model User {
   id        String   @id @default(uuid())
@@ -36,6 +41,7 @@ model User {
   certificates   Certificate[]
 
   @@map("users")
+  @@schema("wattlearnhouse")
 }
 
 model Course {
@@ -55,6 +61,7 @@ model Course {
 
   @@index([teacherId], map: "idx_courses_teacher_id")
   @@map("courses")
+  @@schema("wattlearnhouse")
 }
 
 model Enrollment {
@@ -69,6 +76,7 @@ model Enrollment {
   @@unique([userId, courseId], map: "idx_enrollments_user_course")
   @@index([courseId], map: "idx_enrollments_course_id")
   @@map("enrollments")
+  @@schema("wattlearnhouse")
 }
 
 model Certificate {
@@ -89,6 +97,7 @@ model Certificate {
   @@unique([userId, courseId, kind], map: "idx_certificates_user_course_kind")
   @@index([courseId], map: "idx_certificates_course_id")
   @@map("certificates")
+  @@schema("wattlearnhouse")
 }
 
 model Module {
@@ -105,6 +114,7 @@ model Module {
 
   @@index([courseId], map: "idx_modules_course_id")
   @@map("modules")
+  @@schema("wattlearnhouse")
 }
 
 model Lesson {
@@ -121,6 +131,7 @@ model Lesson {
 
   @@index([moduleId], map: "idx_lessons_module_id")
   @@map("lessons")
+  @@schema("wattlearnhouse")
 }
 
 model Quiz {
@@ -134,6 +145,7 @@ model Quiz {
   attempts  QuizAttempt[]
 
   @@map("quizzes")
+  @@schema("wattlearnhouse")
 }
 
 model QuizQuestion {
@@ -149,6 +161,7 @@ model QuizQuestion {
 
   @@index([quizId], map: "idx_quiz_questions_quiz_id")
   @@map("quiz_questions")
+  @@schema("wattlearnhouse")
 }
 
 model QuizAttempt {
@@ -167,6 +180,7 @@ model QuizAttempt {
   @@index([quizId], map: "idx_quiz_attempts_quiz_id")
   @@index([userId], map: "idx_quiz_attempts_user_id")
   @@map("quiz_attempts")
+  @@schema("wattlearnhouse")
 }
 
 model LessonProgress {
@@ -181,4 +195,5 @@ model LessonProgress {
   @@unique([userId, lessonId], map: "idx_lesson_progress_user_lesson")
   @@index([lessonId], map: "idx_lesson_progress_lesson_id")
   @@map("lesson_progress")
+  @@schema("wattlearnhouse")
 }
