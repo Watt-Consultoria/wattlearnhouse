@@ -5,7 +5,7 @@ Controle de acesso e regras de autoria para a área de professor, garantindo que
 ## Requirements
 
 ### Requirement: Acesso restrito a usuários com role teacher
-O sistema SHALL restringir todas as rotas e Server Actions de autoria (`/teacher/**` e mutações de `Course`/`Module`/`Lesson`) a usuários autenticados cujo `role` seja `teacher`. Um usuário sem sessão SHALL ser redirecionado para `/login`; um usuário autenticado com `role: student` SHALL ser redirecionado para `/courses`.
+O sistema SHALL restringir todas as rotas e Server Actions de autoria (`/teacher/**` e mutações de `Course`/`Module`/`Lesson`) a usuários autenticados cujo `role` seja `teacher` ou `admin`. Um usuário sem sessão SHALL ser redirecionado para `/login`; um usuário autenticado com `role: student` SHALL ser redirecionado para `/courses`.
 
 #### Scenario: Usuário não autenticado acessa área de autoria
 - **WHEN** um visitante sem sessão válida acessa qualquer rota sob `/teacher`
@@ -19,8 +19,12 @@ O sistema SHALL restringir todas as rotas e Server Actions de autoria (`/teacher
 - **WHEN** um usuário autenticado com `role: teacher` acessa `/teacher/courses`
 - **THEN** a página é exibida normalmente
 
+#### Scenario: Admin acessa a área de autoria
+- **WHEN** um usuário autenticado com `role: admin` acessa qualquer rota sob `/teacher`
+- **THEN** a página é exibida normalmente, sem restrição de posse de curso
+
 ### Requirement: Professor só edita cursos dos quais é o teacherId
-O sistema SHALL permitir que um `Course` seja criado, editado ou excluído apenas pelo usuário cujo `id` seja igual ao `teacherId` do curso. Toda Server Action de mutação sobre `Course`, `Module` ou `Lesson` SHALL verificar essa posse resolvendo a cadeia até o `Course` antes de gravar, independentemente do que a UI já esconde.
+O sistema SHALL permitir que um `Course` seja criado, editado ou excluído pelo usuário cujo `id` seja igual ao `teacherId` do curso, ou por qualquer usuário com `role: admin`. Toda Server Action de mutação sobre `Course`, `Module` ou `Lesson` SHALL verificar essa posse (ou o papel `admin`) resolvendo a cadeia até o `Course` antes de gravar, independentemente do que a UI já esconde.
 
 #### Scenario: Professor edita curso próprio
 - **WHEN** um usuário `teacher` chama a mutação de edição de um `Course` onde `teacherId` é o próprio `id`
@@ -37,6 +41,10 @@ O sistema SHALL permitir que um `Course` seja criado, editado ou excluído apena
 #### Scenario: Professor tenta editar aula de módulo de outro professor
 - **WHEN** um usuário `teacher` chama a mutação de edição/exclusão de uma `Lesson` cujo `Module.Course.teacherId` pertence a outro usuário
 - **THEN** a operação é rejeitada e nenhuma alteração é persistida
+
+#### Scenario: Admin edita curso de qualquer professor
+- **WHEN** um usuário `admin` chama a mutação de edição/exclusão de um `Course`, `Module` ou `Lesson` cujo `teacherId` (resolvido até o `Course`) pertence a outro usuário
+- **THEN** a alteração é persistida com sucesso, sem checagem de posse
 
 ### Requirement: CRUD de Course pelo professor autor
 O sistema SHALL permitir que um professor crie um novo `Course` (com `title`, `description` opcional, `category` e `coverImageUrl` opcional, `teacherId` fixado automaticamente para o usuário atual), edite esses campos, e exclua o curso (removendo em cascata seus `Module` e `Lesson`, conforme já definido em `course-content-structure`).
