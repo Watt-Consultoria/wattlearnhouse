@@ -3,13 +3,16 @@ import type { NextRequest } from "next/server";
 import sessionService from "@/modules/auth/session.service";
 
 const publicRoutes = ["/login"];
+const publicRoutePrefixes = ["/certificates/verify"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(sessionService.cookieName)?.value;
   const session = await sessionService.decrypt(token);
   const isAuthenticated = !!session?.userId;
-  const isPublicRoute = publicRoutes.includes(pathname);
+  const isPublicRoute =
+    publicRoutes.includes(pathname) ||
+    publicRoutePrefixes.some((prefix) => pathname.startsWith(prefix));
 
   if (!isAuthenticated && !isPublicRoute) {
     return NextResponse.redirect(new URL("/login", request.url));

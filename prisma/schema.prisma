@@ -12,12 +12,19 @@ enum UserRole {
   teacher
   admin
 }
+
+enum CertificateKind {
+  student_completion
+  teacher_authorship
+}
 model User {
   id        String   @id @default(uuid())
   googleId  String   @unique @map("google_id")
   name      String
   email     String   @unique
   avatarUrl String?  @map("avatar_url")
+  fullName  String?  @map("full_name")
+  cpf       String?
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
   role      UserRole @default(student)
@@ -26,6 +33,7 @@ model User {
   lessonProgress LessonProgress[]
   quizAttempts   QuizAttempt[]
   enrollments    Enrollment[]
+  certificates   Certificate[]
 
   @@map("users")
 }
@@ -40,9 +48,10 @@ model Course {
   createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  teacher     User         @relation(fields: [teacherId], references: [id])
-  modules     Module[]
-  enrollments Enrollment[]
+  teacher      User          @relation(fields: [teacherId], references: [id])
+  modules      Module[]
+  enrollments  Enrollment[]
+  certificates Certificate[]
 
   @@index([teacherId], map: "idx_courses_teacher_id")
   @@map("courses")
@@ -60,6 +69,26 @@ model Enrollment {
   @@unique([userId, courseId], map: "idx_enrollments_user_course")
   @@index([courseId], map: "idx_enrollments_course_id")
   @@map("enrollments")
+}
+
+model Certificate {
+  id                  String          @id @default(uuid())
+  userId              String          @map("user_id")
+  courseId            String          @map("course_id")
+  kind                CertificateKind @default(student_completion)
+  verificationCode    String          @unique @map("verification_code")
+  fullNameSnapshot    String          @map("full_name_snapshot")
+  cpfSnapshot         String          @map("cpf_snapshot")
+  courseTitleSnapshot String          @map("course_title_snapshot")
+  modulesSnapshot     Json            @map("modules_snapshot")
+  issuedAt            DateTime        @default(now()) @map("issued_at") @db.Timestamptz(3)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId, kind], map: "idx_certificates_user_course_kind")
+  @@index([courseId], map: "idx_certificates_course_id")
+  @@map("certificates")
 }
 
 model Module {

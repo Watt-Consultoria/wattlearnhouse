@@ -160,3 +160,10 @@
   padding-block: 0.25rem;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Sem margem de página = sem espaço para o navegador desenhar seu próprio
+   cabeçalho/rodapé (data, título, URL, número de página) na impressão —
+   o conteúdo impresso já traz seu próprio espaçamento interno. */
+@page {
+  margin: 0;
+}

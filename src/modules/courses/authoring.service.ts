@@ -15,6 +15,7 @@ export type TeacherCourseDetail = {
   description: string | null;
   category: string;
   coverImageUrl: string | null;
+  teacherId: string;
   modules: {
     id: string;
     title: string;
@@ -110,6 +111,7 @@ class AuthoringService {
       description: course.description,
       category: course.category,
       coverImageUrl: course.coverImageUrl,
+      teacherId: course.teacherId,
       modules: course.modules.map((courseModule) => ({
         id: courseModule.id,
         title: courseModule.title,

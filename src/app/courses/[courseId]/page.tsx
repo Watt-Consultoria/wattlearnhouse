@@ -3,10 +3,12 @@ import { notFound, redirect } from "next/navigation";
 import { Lock, CheckCircle2, HelpCircle, BookOpen, ChevronRight } from "lucide-react";
 import authService from "@/modules/auth/auth.service";
 import coursesService from "@/modules/courses/courses.service";
+import certificatesService from "@/modules/certificates/certificates.service";
 import { Navbar } from "@/modules/courses/components/navbar";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { ProgressBar } from "@/components/progress-bar";
 import { EnrollButton } from "@/modules/courses/components/enroll-button";
+import { IssueCertificatePanel } from "@/modules/certificates/components/issue-certificate-panel";
 import { cn } from "@/lib/utils";
 
 export default async function CourseDetailPage({
@@ -24,6 +26,12 @@ export default async function CourseDetailPage({
   if (!course) {
     notFound();
   }
+
+  const courseComplete =
+    course.isEnrolled && (await certificatesService.isCourseComplete(courseId, user.id));
+  const certificate = courseComplete
+    ? await certificatesService.getCertificateForUserCourse(courseId, user.id)
+    : null;
 
   return (
     <>
@@ -85,6 +93,12 @@ export default async function CourseDetailPage({
                     style={{ width: `${course.progressPercent}%` }}
                   />
                 </div>
+              </div>
+            )}
+
+            {courseComplete && (
+              <div className="mt-5">
+                <IssueCertificatePanel courseId={course.id} hasCertificate={!!certificate} />
               </div>
             )}
           </div>
